@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -16,30 +16,72 @@ export default function App() {
   const BUSSTOP_URL = "https://arrivelah2.busrouter.sg/?id=54009";
 
   const [loading, setLoading] = useState(true);
+  const [arrival, setArrival] = useState("");
+  const [duration, setDuration] = useState("");
 
   function loadBusStopData() {
+    setLoading(true);
+
+    // this returns a response object
     fetch(BUSSTOP_URL)
+      // this returns a json inside the response object
       .then((response) => {
         return response.json();
       })
+      // responseData is the same as response.json()
       .then((responseData) => {
-        console.log(responseData);
+        const myBus = responseData.services.filter(
+          (bus) => bus.no === "265"
+        )[0];
+        console.log("My bus:");
+        console.log(myBus.next.time);
+        setLoading(false);
+        const date = new Date(myBus.next.time);
+        const [hour, minutes, seconds] = [
+          ("0" + date.getHours()).slice(-2),
+          ("0" + date.getMinutes()).slice(-2),
+          ("0" + date.getSeconds()).slice(-2),
+        ];
+        setArrival([hour, ":", minutes, ":", seconds]);
+        setDuration(myBus.next.duration_ms);
       });
   }
 
+  function millisToMinutesAndSeconds(millis) {
+    var minutes = Math.floor(millis / 60000);
+    var seconds = ((millis % 60000) / 1000).toFixed(0);
+    return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+  }
+
   useEffect(() => {
-    loadBusStopData();
+    const interval = setInterval(() => {
+      loadBusStopData();
+    }, 10000);
+    // Return the function to run when unmounting
+    return () => clearInterval(interval);
   }, []);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bus arrival time:</Text>
+      <Text style={styles.title}>Bus: 265</Text>
+      <Text style={styles.title}>Bus stop: 54009</Text>
+      <Text style={styles.title}>arrival time</Text>
       <Text style={styles.arrivalTime}>
         {/* if loading is true, show loading. if loading is false show loaded. */}
         {loading ? (
           <ActivityIndicator size="large" color="#0000ff" />
         ) : (
-          "Loaded"
+          // Date(arrival)
+          arrival
+        )}
+      </Text>
+      <Text style={styles.title}>duration</Text>
+      <Text style={styles.arrivalTime}>
+        {/* if loading is true, show loading. if loading is false show loaded. */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          millisToMinutesAndSeconds(duration) + " min"
         )}
       </Text>
       <TouchableOpacity onPress={loadBusStopData} style={styles.button}>
@@ -58,11 +100,11 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    margin: 24,
+    margin: 10,
     textAlign: "center",
     color: "black",
     fontWeight: "bold",
-    fontSize: 20,
+    fontSize: 30,
   },
 
   arrivalTime: {
@@ -70,7 +112,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "red",
     fontWeight: "bold",
-    fontSize: 40,
+    fontSize: 30,
   },
 
   button: {
@@ -83,7 +125,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 10,
     alignItems: "center",
-    // width: "100%",
     borderBottomRightRadius: 30,
   },
 
